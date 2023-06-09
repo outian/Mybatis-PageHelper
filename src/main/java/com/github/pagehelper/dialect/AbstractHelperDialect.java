@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -188,7 +188,7 @@ public abstract class AbstractHelperDialect extends AbstractDialect implements C
         String orderBy = page.getOrderBy();
         if (StringUtil.isNotEmpty(orderBy)) {
             pageKey.update(orderBy);
-            sql = OrderByParser.converToOrderBySql(sql, orderBy);
+            sql = OrderByParser.converToOrderBySql(sql, orderBy, jSqlParser);
         }
         if (page.isOrderByOnly()) {
             return sql;
@@ -230,7 +230,7 @@ public abstract class AbstractHelperDialect extends AbstractDialect implements C
 
     @Override
     public void setProperties(Properties properties) {
-
+        super.setProperties(properties);
     }
 
     /**

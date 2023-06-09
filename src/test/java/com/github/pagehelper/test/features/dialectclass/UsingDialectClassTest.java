@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -88,12 +88,41 @@ public class UsingDialectClassTest {
             assertEquals(183, serializable.getTotal());
 
 
+            //获取第1页，10条内容，默认查询总数count
+            PageHelper.startPage(1, 10);
+            list = userMapper.selectAll();
+            page = new PageInfo<User>(list);
+            assertEquals(10, list.size());
+            assertEquals(183, page.getTotal());
+
+            serializable = PageSerializable.of(list);
+            assertEquals(183, serializable.getTotal());
+
+            //获取第1页，10条内容，默认查询总数count
+            PageHelper.startPage(2, 10);
+            list = userMapper.selectAll();
+            page = new PageInfo<User>(list);
+            assertEquals(10, list.size());
+            assertEquals(183, page.getTotal());
+
+            serializable = PageSerializable.of(list);
+            assertEquals(183, serializable.getTotal());
+
+
             //获取第2页，10条内容，默认查询总数count
             PageHelper.startPage(2, 10).using(TEST2_DIALECT_CLASS);
             list = userMapper.selectAll();
             page = new PageInfo<User>(list);
 
             assertEquals(100, list.size());
+            assertEquals(183, page.getTotal());
+
+
+            PageHelper.startPage(2, 10);
+            list = userMapper.selectAll();
+            page = new PageInfo<User>(list);
+
+            assertEquals(10, list.size());
             assertEquals(183, page.getTotal());
 
         } finally {

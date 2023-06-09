@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ package com.github.pagehelper;
 
 import com.github.pagehelper.cache.Cache;
 import com.github.pagehelper.cache.CacheFactory;
+import com.github.pagehelper.page.PageMethod;
 import com.github.pagehelper.util.ExecutorUtil;
 import com.github.pagehelper.util.MSUtils;
 import com.github.pagehelper.util.StringUtil;
@@ -56,18 +57,19 @@ import java.util.Properties;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 @Intercepts(
-    {
-        @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
-        @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
-    }
+        {
+                @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+                @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
+        }
 )
 public class PageInterceptor implements Interceptor {
-    private static final Log log = LogFactory.getLog(PageInterceptor.class);
-
-    private volatile Dialect                        dialect;
-    private          String                         countSuffix           = "_COUNT";
-    protected        Cache<String, MappedStatement> msCountMap            = null;
-    private          String                         default_dialect_class = "com.github.pagehelper.PageHelper";
+    private static final Log                            log                   = LogFactory.getLog(PageInterceptor.class);
+    private static       boolean                        debug                 = false;
+    protected            Cache<String, MappedStatement> msCountMap            = null;
+    protected            CountMsIdGen                   countMsIdGen          = CountMsIdGen.DEFAULT;
+    private volatile     Dialect                        dialect;
+    private              String                         countSuffix           = "_COUNT";
+    private              String                         default_dialect_class = "com.github.pagehelper.PageHelper";
 
     public PageInterceptor() {
         String bannerEnabled = System.getProperty("pagehelper.banner");
@@ -77,12 +79,26 @@ public class PageInterceptor implements Interceptor {
         //默认 TRUE
         if (StringUtil.isEmpty(bannerEnabled) || Boolean.parseBoolean(bannerEnabled)) {
             log.debug("\n\n" +
-                ",------.                           ,--.  ,--.         ,--.                         \n" +
-                "|  .--. '  ,--,--.  ,---.   ,---.  |  '--'  |  ,---.  |  |  ,---.   ,---.  ,--.--. \n" +
-                "|  '--' | ' ,-.  | | .-. | | .-. : |  .--.  | | .-. : |  | | .-. | | .-. : |  .--' \n" +
-                "|  | --'  \\ '-'  | ' '-' ' \\   --. |  |  |  | \\   --. |  | | '-' ' \\   --. |  |    \n" +
-                "`--'       `--`--' .`-  /   `----' `--'  `--'  `----' `--' |  |-'   `----' `--'    \n" +
-                "                   `---'                                   `--'                        is intercepting.\n");
+                    ",------.                           ,--.  ,--.         ,--.                         \n" +
+                    "|  .--. '  ,--,--.  ,---.   ,---.  |  '--'  |  ,---.  |  |  ,---.   ,---.  ,--.--. \n" +
+                    "|  '--' | ' ,-.  | | .-. | | .-. : |  .--.  | | .-. : |  | | .-. | | .-. : |  .--' \n" +
+                    "|  | --'  \\ '-'  | ' '-' ' \\   --. |  |  |  | \\   --. |  | | '-' ' \\   --. |  |    \n" +
+                    "`--'       `--`--' .`-  /   `----' `--'  `--'  `----' `--' |  |-'   `----' `--'    \n" +
+                    "                   `---'                                   `--'                        is intercepting.\n");
+        }
+    }
+
+    public static boolean isDebug() {
+        return debug;
+    }
+
+    /**
+     * 输出启用分页方法时的调用堆栈信息
+     */
+    protected void debugStackTraceLog() {
+        if (isDebug()) {
+            Page<Object> page = PageMethod.getLocalPage();
+            log.debug(page.getStackTrace());
         }
     }
 
@@ -115,6 +131,9 @@ public class PageInterceptor implements Interceptor {
             List resultList;
             //调用方法判断是否需要进行分页，如果不需要，直接返回结果
             if (!dialect.skip(ms, parameter, rowBounds)) {
+                //开启debug时，输出触发当前分页执行时的PageHelper调用堆栈
+                // 如果和当前调用堆栈不一致，说明在启用分页后没有消费，当前线程再次执行时消费，调用堆栈显示的方法使用不安全
+                debugStackTraceLog();
                 //判断是否需要进行 count 查询
                 if (dialect.beforeCount(ms, parameter, rowBounds)) {
                     //查询总数
@@ -133,7 +152,7 @@ public class PageInterceptor implements Interceptor {
             }
             return dialect.afterPage(resultList, parameter, rowBounds);
         } finally {
-            if(dialect != null){
+            if (dialect != null) {
                 dialect.afterAll();
             }
         }
@@ -157,7 +176,7 @@ public class PageInterceptor implements Interceptor {
     private Long count(Executor executor, MappedStatement ms, Object parameter,
                        RowBounds rowBounds, ResultHandler resultHandler,
                        BoundSql boundSql) throws SQLException {
-        String countMsId = ms.getId() + countSuffix;
+        String countMsId = countMsIdGen.genCountMsId(ms, parameter, boundSql, countSuffix);
         Long count;
         //先判断是否存在手写的 count 查询
         MappedStatement countMs = ExecutorUtil.getExistedMappedStatement(ms.getConfiguration(), countMsId);
@@ -204,6 +223,23 @@ public class PageInterceptor implements Interceptor {
         String countSuffix = properties.getProperty("countSuffix");
         if (StringUtil.isNotEmpty(countSuffix)) {
             this.countSuffix = countSuffix;
+        }
+
+        // debug模式，用于排查不安全分页调用
+        debug = Boolean.parseBoolean(properties.getProperty("debug"));
+
+        // 通过 countMsId 配置自定义类
+        String countMsIdGenClass = properties.getProperty("countMsIdGen");
+        if (StringUtil.isNotEmpty(countMsIdGenClass)) {
+            try {
+                Class<?> aClass = Class.forName(countMsIdGenClass);
+                countMsIdGen = (CountMsIdGen) aClass.newInstance();
+                if (countMsIdGen instanceof PageProperties) {
+                    ((PageProperties) countMsIdGen).setProperties(properties);
+                }
+            } catch (Exception e) {
+                throw new PageException(e);
+            }
         }
     }
 

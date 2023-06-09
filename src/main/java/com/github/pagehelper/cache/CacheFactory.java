@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 package com.github.pagehelper.cache;
 
 import com.github.pagehelper.PageException;
+import com.github.pagehelper.PageProperties;
 import com.github.pagehelper.util.StringUtil;
 
 import java.lang.reflect.Constructor;
@@ -58,7 +59,11 @@ public abstract class CacheFactory {
                     Constructor<? extends Cache> constructor = clazz.getConstructor(Properties.class, String.class);
                     return constructor.newInstance(properties, prefix);
                 } catch (Exception e) {
-                    return clazz.newInstance();
+                    Cache cache = clazz.newInstance();
+                    if (cache instanceof PageProperties) {
+                        ((PageProperties) cache).setProperties(properties);
+                    }
+                    return cache;
                 }
             } catch (Throwable t) {
                 throw new PageException("Created Sql Cache [" + sqlCacheClass + "] Error", t);

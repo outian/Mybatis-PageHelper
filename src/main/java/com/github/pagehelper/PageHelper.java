@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,9 +55,6 @@ public class PageHelper extends PageMethod implements Dialect, BoundSqlIntercept
 
     @Override
     public boolean skip(MappedStatement ms, Object parameterObject, RowBounds rowBounds) {
-        if (ms.getId().endsWith(MSUtils.COUNT)) {
-            throw new RuntimeException("在系统中发现了多个分页插件，请检查系统配置!");
-        }
         Page page = pageParams.getPage(parameterObject, rowBounds);
         if (page == null) {
             return true;

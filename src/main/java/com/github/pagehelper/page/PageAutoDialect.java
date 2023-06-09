@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2014-2017 abel533@gmail.com
+ * Copyright (c) 2014-2022 abel533@gmail.com
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ package com.github.pagehelper.page;
 import com.github.pagehelper.AutoDialect;
 import com.github.pagehelper.Dialect;
 import com.github.pagehelper.PageException;
+import com.github.pagehelper.PageProperties;
 import com.github.pagehelper.dialect.AbstractHelperDialect;
 import com.github.pagehelper.dialect.auto.*;
 import com.github.pagehelper.dialect.helper.*;
@@ -95,6 +96,15 @@ public class PageAutoDialect {
         registerDialectAlias("xugu", HsqldbDialect.class);
         registerDialectAlias("impala", HsqldbDialect.class);
         registerDialectAlias("firebirdsql", FirebirdDialect.class);
+        //人大金仓数据库
+        registerDialectAlias("kingbase", PostgreSqlDialect.class);
+        // 人大金仓新版本kingbase8
+        registerDialectAlias("kingbase8", PostgreSqlDialect.class);
+        //行云数据库
+        registerDialectAlias("xcloud", CirroDataDialect.class);
+
+        //openGauss数据库
+        registerDialectAlias("opengauss",PostgreSqlDialect.class);
 
         //注册 AutoDialect
         //想要实现和以前版本相同的效果时，可以配置 autoDialectClass=old
@@ -262,6 +272,9 @@ public class PageAutoDialect {
                     autoDialectClass = (Class<AutoDialect>) Class.forName(autoDialectClassStr);
                 }
                 this.autoDialectDelegate = autoDialectClass.getConstructor().newInstance();
+                if (this.autoDialectDelegate instanceof PageProperties) {
+                    ((PageProperties) this.autoDialectDelegate).setProperties(properties);
+                }
             } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException("请确保 autoDialectClass 配置的 AutoDialect 实现类(" + autoDialectClassStr + ")存在!", e);
             } catch (Exception e) {

@@ -2,7 +2,7 @@
 <!--
   ~ The MIT License (MIT)
   ~
-  ~ Copyright (c) 2014-2017 abel533@gmail.com
+  ~ Copyright (c) 2014-2022 abel533@gmail.com
   ~
   ~ Permission is hereby granted, free of charge, to any person obtaining a copy
   ~ of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,6 @@
         <setting name="cacheEnabled" value="true"/>
         <setting name="lazyLoadingEnabled" value="false"/>
         <setting name="aggressiveLazyLoading" value="true"/>
-        <!--<setting name="logImpl" value="LOG4J"/>-->
     </settings>
 
     <typeAliases>
@@ -41,6 +40,7 @@
 
     <plugins>
         <plugin interceptor="com.github.pagehelper.PageInterceptor">
+            <property name="debug" value="true"/>
             <!-- dialect参数可以忽略不写 -->
             <!-- 如果需要用自己的实现方法，可以将value写成类的全限定名称 -->
             <!-- 如下所示，该类必须继承Parser接口 -->
